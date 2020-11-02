@@ -184,8 +184,8 @@ I will be using the pre-release build and [install instructions](https://knative
 1. Verify that Knative is Installed properly all pods should be in `Running` state and our `contour-external` service configured.
     ```bash
     kubectl get pods -n knative-serving
-    kubectl get pods -n kourier-system
     kubectl get svc  -n contour-external
+    kubectl get svc  -n contour-internal
     ```
 
 ## Deploy Knative Application
