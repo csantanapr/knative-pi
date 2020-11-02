@@ -15,9 +15,16 @@
     ```
 1. Build and Push the image
     ```bash
-    docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKER_HUB_USER}/helloworld-nodejs:latest --push .
+    docker buildx build \
+     -t ${DOCKER_HUB_USER}/helloworld-nodejs:latest \
+     --platform linux/amd64,linux/arm64 \
+     --push .
     ```
 1. Deploy as Knative service
     ```bash
     kn service create helloworld-nodejs --image docker.io/${DOCKER_HUB_USER}/helloworld-nodejs
+    ```
+1. Run the app
+    ```bash
+    curl $(kubectl get ksvc helloworld-nodejs -o jsonpath='{.status.url}')
     ```
