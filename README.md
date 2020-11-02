@@ -156,7 +156,7 @@ k3sup install \
 - The `--merge` specified to merge the kubeconfig of the new cluster into an existing kubeconfig file
 - The `--local-path` specifies which file to write the kubeconfig file, in our case specify an existing one to merge in the new config
 - The `--context` specifies the context for the cluster when you use `kubectl` or `kn`
-- The `--latest` specifies which version of kubernetes to install
+- The `--k3s-channel` specifies which version of kubernetes to install
 - The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
 To verify switch your context
