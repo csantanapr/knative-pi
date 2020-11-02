@@ -17,10 +17,11 @@ This instructions are based on [Ubuntu Post](https://ubuntu.com/tutorials/how-to
 
 - You will need a 64 bit OS, you can use Ubuntu or Raspberry OS. I will be using Ubuntu 20.10 64bit
 - Get an application to image the OS into the SD Card, you can use RaspBerry Imager or any other tool. Choose [MacOS](https://downloads.raspberrypi.org/imager/imager.dmg) or [Windows](https://downloads.raspberrypi.org/imager/imager.exe)
-    1. Select Ubuntu Server 20.10 64bit (RPi 3/4)
-    2. Select SD Card
-    3. WRITE
-    4. WAIT for ~10 minutes
+1. Scroll down and Select Ubuntu Server 20.10 64bit (RPi 3/4/400) (Do not select Desktop)
+    ![](images/ubuntu-server.png)
+2. Select SD Card
+3. WRITE
+4. WAIT for ~10 minutes
 
 Configure some environment variables based on your operating system, you can use the template provided
 ```bash
