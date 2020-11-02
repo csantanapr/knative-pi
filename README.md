@@ -49,6 +49,31 @@ sed -i .bak 's/$/ cgroup_memory=1 cgroup_enable=memory/' ${BOOT_DRIVE}/cmdline.t
 cat ${BOOT_DRIVE}/cmdline.txt
 ```
 
+### Configure Network
+
+After the SD Card is imaged, remove the card and re-insert.
+The boot filesystem should be visible from example on MacOS under `/Volumes/system-boot/`
+
+Create a file `network-config` with the wifi info, replace the values for SSID and PASSWORD below
+```bash
+source .env
+cp ${BOOT_DRIVE}/network-config ${BOOT_DRIVE}/network-config.bak
+cat <<EOF >${BOOT_DRIVE}/network-config
+version: 2
+ethernets:
+  eth0:
+    dhcp4: true
+    optional: true
+wifis:
+  wlan0:
+    dhcp4: true
+    optional: true
+    access-points:
+      ${WIFI_SSID}:
+        password: "${WIFI_PASSWORD}"
+EOF
+```
+
 ### Boot up
 
 Umount/Eject SD Card from your computer, insert into raspberry pi and power on the raspberry pi.
@@ -76,6 +101,7 @@ ls ~/.ssh/id_rsa*
 
 If you have more than one ssh key you can use `-i` to be sure it picks the correct one.
 ```bash
+source .env
 ssh-copy-id -i $HOME/.ssh/id_rsa ubuntu@$IP
 ```
 
@@ -83,6 +109,7 @@ If you get prompted for the password use `ubuntu` you would be ask to change it 
 
 Now you can ssh into the pi without a password
 ```bash
+source .env
 ssh ubuntu@$IP uname -m
 ```
 It should print `aarch64` to indicate arm64
@@ -116,9 +143,21 @@ k3sup install \
 - The `--k3s-channel` specifies which version of kubernetes to install
 - The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
+- If you ever need to recover the kubeconfig from the cluster you can use the flag `--skip-install1`
+```
+source .env
+k3sup install \
+  --ip $IP \
+  --user ubuntu \
+  --merge \
+  --local-path $HOME/.kube/config \
+  --context knative-pi \
+  --skip-install
+```
+
 ## Verify Kubernetes installed
 
-1. switch your context
+1. switch your context using [kubectx](https://github.com/ahmetb/kubectx)
     ```bash
     kubectx knative-pi
     ```
@@ -150,14 +189,14 @@ I will be using the pre-release build and [install instructions](https://knative
     sed "s/envoy:v1.15.1/envoy:v1.16.0/g" | \
     kubectl apply -f -
     kubectl wait deployment --all --timeout=-1s --for=condition=Available -n contour-external
-    kubectl wait deployment --all --timeout=-1s --for=condition=Available -n contour-external
+    kubectl wait deployment --all --timeout=-1s --for=condition=Available -n contour-internal
     ```
-1. Install the Knative Contour controller:
+1. Install the Knative Network Controller:
     ```bash
     kubectl apply --filename https://storage.googleapis.com/knative-nightly/net-contour/latest/net-contour.yaml
     kubectl wait deployment contour-ingress-controller --timeout=-1s --for=condition=Available -n knative-serving
     ```
-1. To configure Knative Serving to use Contour by default:
+1. To configure Knative Serving to use previous installed Network Controller by default:
     ```bash
     kubectl patch configmap/config-network \
     --namespace knative-serving \
@@ -234,7 +273,7 @@ curl $SERVICE_URL
 
 Output should be:
 ```
-Hello World from Golang
+Hello World from Golang!
 ```
 
 Check the knative pods that scaled from zero
