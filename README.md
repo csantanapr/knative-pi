@@ -233,7 +233,7 @@ curl $SERVICE_URL
 
 Output should be:
 ```
-Hello World! How about some tasty noodles?
+Hello World from Golang
 ```
 
 Check the knative pods that scaled from zero
