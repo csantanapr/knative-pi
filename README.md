@@ -48,51 +48,7 @@ sed -i .bak 's/$/ cgroup_memory=1 cgroup_enable=memory/' ${BOOT_DRIVE}/cmdline.t
 cat ${BOOT_DRIVE}/cmdline.txt
 ```
 
-
-### Configure Wifi
-
-After the SD Card is imaged, remove the card and re-insert.
-The boot filesystem should be visible from example on MacOS under `/Volumes/system-boot/`
-
-Create a file `network-config` with the wifi info, replace the values for SSID and PASSWORD below
-```bash
-source .env
-cat <<EOF >${BOOT_DRIVE}/network-config
-wifis:
-  wlan0:
-    dhcp4: yes
-    optional: true
-    access-points:
-      "${WIFI_SSID}":
-        password: "${WIFI_PASSWORD}"
-EOF
-```
-
-test 2
-```bash
-source .env
-cat <<EOF >${BOOT_DRIVE}/network-config
-network:
-  version: 2
-  renderer: networkd
-  wifis:
-    wlan0:
-      dhcp4: yes
-      optional: true
-      access-points:
-        "${WIFI_SSID}":
-          password: "${WIFI_PASSWORD}"
-EOF
-```
-
-Check that the file is correctly created
-```bash
-source .env
-cat ${BOOT_DRIVE}/network-config
-```
-
-
-### IP Address
+### Boot up
 
 Umount/Eject SD Card from your computer, insert into raspberry pi and power on the raspberry pi.
 
