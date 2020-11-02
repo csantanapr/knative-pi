@@ -84,7 +84,7 @@ Now you can ssh into the pi without a password
 ```bash
 ssh ubuntu@$IP uname -m
 ```
-It should pring `aarch64` to indicate arm64
+It should print `aarch64` to indicate arm64
 
 
 ## Install Kubernetes
@@ -115,25 +115,27 @@ k3sup install \
 - The `--k3s-channel` specifies which version of kubernetes to install
 - The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
-To verify switch your context
-```bash
-kubectx knative-pi
-```
-List the nodes
-```
-kubectl get nodes -o wide
-```
-The output should look like this
-```
-NAME     STATUS   ROLES    AGE     VERSION         INTERNAL-IP     EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION     CONTAINER-RUNTIME
-ubuntu   Ready    master   7m38s   v1.18.10+k3s2   192.168.7.218   <none>        Ubuntu 20.10   5.8.0-1006-raspi   containerd://1.3.3-k3s2
-```
+## Verify Kubernetes installed
+
+1. switch your context
+    ```bash
+    kubectx knative-pi
+    ```
+1. List the nodes
+    ```bash
+    kubectl get nodes -o wide
+    ```
+3. The output should look like this
+    ```
+    NAME     STATUS   ROLES    AGE   VERSION        INTERNAL-IP     EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION     CONTAINER-RUNTIME
+    ubuntu   Ready    master   54m   v1.19.3+k3s2   192.168.7.218   <none>        Ubuntu 20.10   5.8.0-1006-raspi   containerd://1.4.0-k3s1
+    ```
 
 ## Install Knative
 
 I will be using the pre-release build and [install instructions](https://knative.dev/development/install/any-kubernetes-cluster/) since the next version of knative `0.19` is not released yet that contains support for arm64
 
-- Install Knative Serving
+1. Install Knative Serving
     ```bash
     kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-crds.yaml
 
@@ -190,7 +192,7 @@ I will be using the pre-release build and [install instructions](https://knative
 
 Deploy using Knative CLI [kn](https://github.com/knative/client):
 ```bash
-kn service create hello --port 8080 --image docker.io/mattmoor/helloworld
+kn service create hello --port 8080 --image csantanapr/helloworld-go:latest
 ```
 
 **Optional:** Deploy a Knative Service using a yaml manifest:
@@ -275,6 +277,30 @@ hello-r4vz7-deployment-c5d4b88f7-rr8cd   2/2     Running
 
 Some people call this **Serverless** 🎉 🌮 🔥
 
+
+If you want to see how much CPU and Memory all the pods are consuming use `kubectl top`
+```
+kubectl top pods -A --sort-by=cpu
+NAMESPACE          NAME                                          CPU(cores)   MEMORY(bytes)
+knative-serving    webhook-c76796d6f-4rh2n                       52m          13Mi
+knative-serving    controller-7f6d88c75b-bmm5v                   29m          24Mi
+knative-serving    autoscaler-b57c65d47-w8rs6                    21m          16Mi
+contour-external   envoy-rqbd4                                   14m          25Mi
+kube-system        coredns-66c464876b-nttx5                      12m          8Mi
+contour-internal   envoy-kvk8d                                   12m          25Mi
+knative-serving    contour-ingress-controller-5fdd4b6f94-hrqth   8m           14Mi
+kube-system        metrics-server-7b4f8b595-6zbrf                6m           13Mi
+contour-internal   contour-6b84898d48-rtw9j                      5m           19Mi
+knative-serving    activator-5ff578d869-nxm4b                    5m           17Mi
+contour-external   contour-5fd57c546b-2lgsl                      4m           19Mi
+kube-system        local-path-provisioner-7ff9579c6-tph2s        4m           7Mi
+contour-external   contour-5fd57c546b-qlxbm                      3m           29Mi
+contour-internal   contour-6b84898d48-r77lj                      2m           16Mi
+contour-external   svclb-envoy-wqwxm                             0m           3Mi
+default            hello-00001-deployment-6d8674c767-2zx86       0m           2Mi
+```
+And this is what htop shows
+![](images/htop-pi.png)
 
 ### Delete Cluster
 Uninstall kubernetes
