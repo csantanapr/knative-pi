@@ -302,6 +302,56 @@ default            hello-00001-deployment-6d8674c767-2zx86       0m           2M
 And this is what htop shows
 ![](images/htop-pi.png)
 
+
+## Build your containers with multi architectures
+
+I have two sample applications in `apps/` one for `go` and one for `nodejs`
+
+#### Build arm64 container image for go
+
+1. Install `ko` version `v0.6.0`+ from https://github.com/google/ko
+1. Setup your docker registry info
+    ```bash
+    export DOCKER_HUB_USER=csantanapr
+    export KO_DOCKER_REPO="docker.io/${DOCKER_HUB_USER}"
+    ```
+1. change directory to the root of the go app
+    ```bash
+    cd apps/helloworld-go
+    ```
+1. Publish container image for all architecture types including `arm64`
+    ```bash
+    ko publish --platform=all -B .
+    ```
+1. Deploy as Knative service
+    ```bash
+    kn service create helloworld-go --image ${KO_DOCKER_REPO}/helloworld-go
+    ```
+
+### Build arm64 container image for nodejs
+
+1. Install Docker-Desktop with experimental enable follow instructions here https://www.docker.com/blog/multi-arch-images/
+1. Create a new builder if you don't have one already
+    ```bash
+    docker buildx create --name mybuilder
+    ```
+1. Configure your docker registry
+    ```bash
+    export DOCKER_HUB_USER=csantanapr
+    ```
+1. change directory to the root of the go app
+    ```bash
+    cd apps/helloworld-nodejs
+    ```
+1. Build and Push the image
+    ```bash
+    docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKER_HUB_USER}/helloworld-nodejs:latest --push .
+    ```
+1. Deploy as Knative service
+    ```bash
+    kn service create helloworld-nodejs --image docker.io/${DOCKER_HUB_USER}/helloworld-nodejs
+    ```
+
 ### Delete Cluster
 Uninstall kubernetes
 ```
