@@ -157,7 +157,7 @@ k3sup install \
 - The `--local-path` specifies which file to write the kubeconfig file, in our case specify an existing one to merge in the new config
 - The `--context` specifies the context for the cluster when you use `kubectl` or `kn`
 - The `--latest` specifies which version of kubernetes to install
-- The `--no-extras` is to avoid the installation of `traefik` as we are going to use `knative` networking
+- The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
 To verify switch your context
 ```bash
@@ -185,12 +185,6 @@ I will be using the pre-release build and [install instructions](https://knative
 
     kubectl wait deployment --all --timeout=-1s --for=condition=Available -n knative-serving
     ```
-
-
-## Setup Knative Networking
-
-We will use contour as the knative networking layer
-
 1. Install Contour but replace the version of envoy to `v1.16.0` as the version that supports arm64
     ```bash
     curl -s -L https://storage.googleapis.com/knative-nightly/net-contour/latest/contour.yaml | \
@@ -211,6 +205,129 @@ We will use contour as the knative networking layer
     --type merge \
     --patch '{"data":{"ingress.class":"contour.ingress.networking.knative.dev"}}'
     ```
+1. Set the environment variable `EXTERNAL_IP` to External IP Address of the Worker Node
+    ```bash
+    EXTERNAL_IP="$(kubectl get svc envoy -n contour-external  -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+    echo EXTERNAL_IP==$EXTERNAL_IP
+    ```
+1. Set the environment variable `KNATIVE_DOMAIN` as the DNS domain using `nip.io`
+    ```bash
+    KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
+    echo KNATIVE_DOMAIN=$KNATIVE_DOMAIN
+    ```
+    Double check DNS is resolving
+    ```bash
+    dig $KNATIVE_DOMAIN
+    ```
+1. Configure DNS for Knative Serving
+    ```bash
+    kubectl patch configmap -n knative-serving config-domain -p "{\"data\": {\"$KNATIVE_DOMAIN\": \"\"}}"
+    ```
+1. Verify that Knative is Installed properly all pods should be in `Running` state and our `contour-external` service configured.
+    ```bash
+    kubectl get pods -n knative-serving
+    kubectl get pods -n kourier-system
+    kubectl get svc  -n contour-external
+    ```
+
+## Deploy Knative Application
+
+Deploy using Knative CLI [kn](https://github.com/knative/client):
+```bash
+kn service create hello --port 8080 --image docker.io/mattmoor/helloworld
+```
+
+**Optional:** Deploy a Knative Service using a yaml manifest:
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  template:
+    spec:
+      containers:
+      - image: csantanapr/helloworld-go:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: TARGET
+          value: "Knative"
+EOF
+```
+
+Wait for Knative Service to be Ready
+```bash
+kubectl wait ksvc hello --all --timeout=-1s --for=condition=Ready
+```
+
+Get the URL of the new Service
+```bash
+SERVICE_URL=$(kubectl get ksvc hello -o jsonpath='{.status.url}')
+echo $SERVICE_URL
+```
+
+Test the App
+```bash
+curl $SERVICE_URL
+```
+
+Output should be:
+```
+Hello World! How about some tasty noodles?
+```
+
+Check the knative pods that scaled from zero
+```
+kubectl get pod -l serving.knative.dev/service=hello
+```
+
+Output should be:
+```
+NAME                                      READY   STATUS    RESTARTS   AGE
+hello-00001-deployment-68bb96f946-wfzxc   2/2     Running   0          93s
+```
+
+Try the service `url` on your browser (command works on linux and macos)
+```bash
+open $SERVICE_URL
+```
+
+You can watch the pods and see how they scale down to zero after http traffic stops to the url
+```
+kubectl get pod -l serving.knative.dev/service=hello -w
+```
+
+Output should look like this:
+```
+NAME                                     READY   STATUS
+hello-00001-deployment-68bb96f946-wfzxc   2/2     Running
+hello-00001-deployment-68bb96f946-wfzxc   2/2     Terminating
+hello-00001-deployment-68bb96f946-wfzxc   1/2     Terminating
+hello-00001-deployment-68bb96f946-wfzxc   0/2     Terminating
+```
+
+Try to access the url again, and you will see a new pod running again.
+```
+NAME                                     READY   STATUS
+hello-r4vz7-deployment-c5d4b88f7-rr8cd   0/2     Pending
+hello-r4vz7-deployment-c5d4b88f7-rr8cd   0/2     ContainerCreating
+hello-r4vz7-deployment-c5d4b88f7-rr8cd   1/2     Running
+hello-r4vz7-deployment-c5d4b88f7-rr8cd   2/2     Running
+```
+
+Some people call this **Serverless** 🎉 🌮 🔥
+
+
+### Delete Cluster
+Uninstall kubernetes
+```
+ssh ubuntu@$IP sudo /usr/local/bin/k3s-uninstall.sh
+```
+If you have any issues with this instructions [open an new issue](https://github.com/csantanapr/knative-pi/issues/new) please 🙏🏻
+
+
 
 ## Related Posts
 - https://blog.alexellis.io/test-drive-k3s-on-raspberry-pi/
