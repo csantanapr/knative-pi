@@ -1,6 +1,6 @@
 # Running Knative on Raspberry Pi
 
-This is a quick tutorial to setup Knative on Raspberry Pi
+Setup Knative on Raspberry Pi in 5 minutes
 
 ## Hardware
 
