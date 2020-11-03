@@ -93,9 +93,16 @@ This would be something like `192.168.x.x` in my case is `192.168.7.101`
 Update the file `.env`
 ```
 IP=192.168.7.101
+echo IP=$IP >>.env
 ```
 
 ### Setup ssh
+
+Login and change the default password `ubuntu` to something different
+```bash
+source .env
+ssh ubuntu@$IP
+```
 
 Check if you have a local ssh, if not then create a new one with `ssh-keygen`
 ```bash
@@ -108,8 +115,6 @@ source .env
 ssh-copy-id -i $HOME/.ssh/id_rsa ubuntu@$IP
 ```
 
-If you get prompted for the password use `ubuntu` you would be ask to change it to a new one.
-
 Now you can ssh into the pi without a password
 ```bash
 source .env
@@ -119,11 +124,9 @@ It should print `aarch64` to indicate arm64
 
 I recommend to change the hostname of the pi from the default `ubuntu` before you install kubernetes to something useful like `pi4`
 ```bash
-sudo hostname pi4
-```
-Make the change permanent
-```bash
-sudo echo pi4 > /etc/hostname
+source .env
+NEW_HOSTNAME=pi4
+ssh ubuntu@$IP "sudo hostnamectl set-hostname ${NEW_HOSTNAME}; sudo sed -i.bak s/localhost/${NEW_HOSTNAME}/g /etc/hosts"
 ```
 
 ## Install Kubernetes
@@ -134,7 +137,7 @@ k3sup version
 ```
 
 Run the following command to install k3s on the pi as a master node.
-```
+```bash
 source .env
 k3sup install \
   --ip $IP \
@@ -155,7 +158,7 @@ k3sup install \
 - The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
 - If you ever need to recover the kubeconfig from the cluster you can use the flag `--skip-install1`
-```
+```bash
 source .env
 k3sup install \
   --ip $IP \
@@ -173,6 +176,7 @@ k3sup install \
 Update `.env` file with AGENT_IP
 ```
 AGENT_IP=192.168.7.103
+echo AGENT_IP=$AGENT_IP >>.env
 ```
 
 ```bash
@@ -182,6 +186,12 @@ k3sup join \
 --server-ip $IP \
 --user ubuntu \
 --k3s-channel latest
+```
+
+You con set a role for the worker node:
+```bash
+NODE=pi-worker
+kubectl label node ${NODE} node-role.kubernetes.io/worker=true
 ```
 
 ## Verify Kubernetes installed
@@ -200,7 +210,9 @@ k3sup join \
     ubuntu   Ready    master   54m   v1.19.3+k3s2   192.168.7.218   <none>        Ubuntu 20.10   5.8.0-1006-raspi   containerd://1.4.0-k3s1
     ```
 
-## Install Knative
+## Install Knative Serving
+
+TLDR; `./01-knative-serving.sh`
 
 I will be using the pre-release build and [install instructions](https://knative.dev/development/install/any-kubernetes-cluster/) since the next version of knative `0.19` is not released yet that contains support for arm64
 
@@ -210,20 +222,22 @@ I will be using the pre-release build and [install instructions](https://knative
 
     kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-core.yaml
 
-    kubectl wait deployment --all --timeout=-1s --for=condition=Available -n knative-serving
+    kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
     ```
 1. Install Contour but replace the version of envoy to `v1.16.0` as the version that supports arm64
     ```bash
     curl -s -L https://storage.googleapis.com/knative-nightly/net-contour/latest/contour.yaml | \
     sed "s/envoy:v1.15.1/envoy:v1.16.0/g" | \
     kubectl apply -f -
-    kubectl wait deployment --all --timeout=-1s --for=condition=Available -n contour-external
-    kubectl wait deployment --all --timeout=-1s --for=condition=Available -n contour-internal
+
+    kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-external -l '!job-name'
+    kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-internal -l '!job-name'
     ```
 1. Install the Knative Network Controller:
     ```bash
     kubectl apply --filename https://storage.googleapis.com/knative-nightly/net-contour/latest/net-contour.yaml
-    kubectl wait deployment contour-ingress-controller --timeout=-1s --for=condition=Available -n knative-serving
+
+    kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
     ```
 1. To configure Knative Serving to use previous installed Network Controller by default:
     ```bash
@@ -253,8 +267,8 @@ I will be using the pre-release build and [install instructions](https://knative
 1. Verify that Knative is Installed properly all pods should be in `Running` state and our `contour-external` service configured.
     ```bash
     kubectl get pods -n knative-serving
+    kubectl get pods -n contour-external
     kubectl get svc  -n contour-external
-    kubectl get svc  -n contour-internal
     ```
 
 ## Deploy Knative Application
