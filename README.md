@@ -62,6 +62,9 @@ cat <<EOF >${BOOT_DRIVE}/network-config
 version: 2
 ethernets:
   eth0:
+    match:
+      driver: bcmgenet smsc95xx lan78xx
+    set-name: eth0
     dhcp4: true
     optional: true
 wifis:
@@ -85,11 +88,11 @@ You can also use a network scan
 nmap -sn 192.168.7.0/24
 ```
 
-This would be something like `192.168.x.x` in my case is `192.168.7.217`
+This would be something like `192.168.x.x` in my case is `192.168.7.101`
 
 Update the file `.env`
 ```
-IP=192.168.7.217
+IP=192.168.7.101
 ```
 
 ### Setup ssh
@@ -114,6 +117,14 @@ ssh ubuntu@$IP uname -m
 ```
 It should print `aarch64` to indicate arm64
 
+I recommend to change the hostname of the pi from the default `ubuntu` before you install kubernetes to something useful like `pi4`
+```bash
+sudo hostname pi4
+```
+Make the change permanent
+```bash
+sudo echo pi4 > /etc/hostname
+```
 
 ## Install Kubernetes
 
@@ -153,6 +164,24 @@ k3sup install \
   --local-path $HOME/.kube/config \
   --context knative-pi \
   --skip-install
+```
+
+## Add worker nodes
+
+- To add worker nodes use the `join` command, `$AGENT_IP` is the ip of the next raspberry ip, and `$IP` is the IP of the first pi acting as master node.
+
+Update `.env` file with AGENT_IP
+```
+AGENT_IP=192.168.7.103
+```
+
+```bash
+source .env
+k3sup join \
+--ip $AGENT_IP \
+--server-ip $IP \
+--user ubuntu \
+--k3s-channel latest
 ```
 
 ## Verify Kubernetes installed
