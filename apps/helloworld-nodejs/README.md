@@ -26,5 +26,5 @@
     ```
 1. Run the app
     ```bash
-    curl $(kubectl get ksvc helloworld-nodejs -o jsonpath='{.status.url}')
+    curl $(kn service describe helloworld-nodejs -o url)
     ```

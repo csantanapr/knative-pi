@@ -20,5 +20,5 @@
     ```
 1. Run the app
     ```bash
-    curl $(kubectl get ksvc helloworld-go -o jsonpath='{.status.url}')
+    curl $(kn service describe helloworld-go -o url)
     ```

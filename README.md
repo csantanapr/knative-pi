@@ -369,7 +369,7 @@ I have two sample applications in `apps/` one for `go` and one for `nodejs`
     ```
 1. Run the app
     ```bash
-    curl $(kubectl get ksvc helloworld-go -o jsonpath='{.status.url}')
+    curl $(kn service describe helloworld-go -o url)
     ```
 
 ### Build arm64 container image for nodejs
@@ -400,7 +400,7 @@ I have two sample applications in `apps/` one for `go` and one for `nodejs`
     ```
 1. Run the app
     ```bash
-    curl $(kubectl get ksvc helloworld-nodejs -o jsonpath='{.status.url}')
+    curl $(kn service describe helloworld-nodejs -o url)
     ```
 
 ### Delete Cluster
