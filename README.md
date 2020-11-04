@@ -264,11 +264,10 @@ I will be using the pre-release build and [install instructions](https://knative
     ```bash
     kubectl patch configmap -n knative-serving config-domain -p "{\"data\": {\"$KNATIVE_DOMAIN\": \"\"}}"
     ```
-1. Verify that Knative is Installed properly all pods should be in `Running` state and our `contour-external` service configured.
+1. Verify that Knative is Installed properly all pods should be in `Running` state and `contour-external` service configured.
     ```bash
     kubectl get pods -n knative-serving
-    kubectl get pods -n contour-external
-    kubectl get svc  -n contour-external
+    kubectl get pods,svc -n contour-external
     ```
 
 ## Deploy Knative Application
