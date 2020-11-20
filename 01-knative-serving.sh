@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xeo pipefail
+set -eo pipefail
 
 serving_version=${serving_version:-latest}
 knative_net_contour_version=${knative_net_contour_version:-latest}
