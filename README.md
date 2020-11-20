@@ -131,68 +131,68 @@ ssh ubuntu@$IP "sudo hostnamectl set-hostname ${NEW_HOSTNAME}; sudo sed -i.bak s
 
 ## Install Kubernetes
 
-Install the [k3sup](https://github.com/alexellis/k3sup#download-k3sup-tldr) command line tool, check that you have latest version I'm using `0.9.7`
-```bash
-k3sup version
-```
+- Install the [k3sup](https://github.com/alexellis/k3sup#download-k3sup-tldr) command line tool, check that you have latest version I'm using `0.9.7`
+    ```bash
+    k3sup version
+    ```
 
-Run the following command to install k3s on the pi as a master node.
-```bash
-source .env
-k3sup install \
-  --ip $IP \
-  --user ubuntu \
-  --merge \
-  --local-path $HOME/.kube/config \
-  --context knative-pi \
-  --k3s-channel latest \
-  --k3s-extra-args '--disable=traefik'
-```
+- Run the following command to install k3s on the pi as a master node.
+    ```bash
+    source .env
+    k3sup install \
+    --ip $IP \
+    --user ubuntu \
+    --merge \
+    --local-path $HOME/.kube/config \
+    --context knative-pi \
+    --k3s-channel latest \
+    --k3s-extra-args '--disable=traefik'
+    ```
 
-- The `--ip` specifies the IP Address to ssh in to the pi
-- The `--user` specifies the user to ssh as
-- The `--merge` specified to merge the kubeconfig of the new cluster into an existing kubeconfig file
-- The `--local-path` specifies which file to write the kubeconfig file, in our case specify an existing one to merge in the new config
-- The `--context` specifies the context for the cluster when you use `kubectl` or `kn`
-- The `--k3s-channel` specifies which version of kubernetes to install
-- The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
+    - The `--ip` specifies the IP Address to ssh in to the pi
+    - The `--user` specifies the user to ssh as
+    - The `--merge` specified to merge the kubeconfig of the new cluster into an existing kubeconfig file
+    - The `--local-path` specifies which file to write the kubeconfig file, in our case specify an existing one to merge in the new config
+    - The `--context` specifies the context for the cluster when you use `kubectl` or `kn`
+    - The `--k3s-channel` specifies which version of kubernetes to install
+    - The `--k3s-extra-args` with `--disable=traefik` is to avoid the installation of `traefik` as we are going to use `knative` networking
 
 - If you ever need to recover the kubeconfig from the cluster you can use the flag `--skip-install1`
-```bash
-source .env
-k3sup install \
-  --ip $IP \
-  --user ubuntu \
-  --merge \
-  --local-path $HOME/.kube/config \
-  --context knative-pi \
-  --skip-install
-```
+    ```bash
+    source .env
+    k3sup install \
+    --ip $IP \
+    --user ubuntu \
+    --merge \
+    --local-path $HOME/.kube/config \
+    --context knative-pi \
+    --skip-install
+    ```
 
 ## Add worker nodes
 
 - To add worker nodes use the `join` command, `$AGENT_IP` is the ip of the next raspberry ip, and `$IP` is the IP of the first pi acting as master node.
 
-Update `.env` file with AGENT_IP
-```
-AGENT_IP=192.168.7.103
-echo AGENT_IP=$AGENT_IP >>.env
-```
+- Update `.env` file with AGENT_IP
+    ```bash
+    AGENT_IP=192.168.7.103
+    echo AGENT_IP=$AGENT_IP >>.env
+    ```
 
-```bash
-source .env
-k3sup join \
---ip $AGENT_IP \
---server-ip $IP \
---user ubuntu \
---k3s-channel latest
-```
+    ```bash
+    source .env
+    k3sup join \
+    --ip $AGENT_IP \
+    --server-ip $IP \
+    --user ubuntu \
+    --k3s-channel latest
+    ```
 
-You con set a role for the worker node:
-```bash
-NODE=pi-worker
-kubectl label node ${NODE} node-role.kubernetes.io/worker=true
-```
+- You con set a role for the worker node:
+    ```bash
+    NODE=pi-worker
+    kubectl label node ${NODE} node-role.kubernetes.io/worker=true
+    ```
 
 ## Verify Kubernetes installed
 
