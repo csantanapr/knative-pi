@@ -214,29 +214,25 @@ kubectl label node ${NODE} node-role.kubernetes.io/worker=true
 
 TLDR; `./01-knative-serving.sh`
 
-I will be using the pre-release build and [install instructions](https://knative.dev/development/install/any-kubernetes-cluster/) since the next version of knative `0.19` is not released yet that contains support for arm64
+I will be using the pre-release build and [install instructions](https://knative.dev/development/install/any-kubernetes-cluster/)
 
 1. Install Knative Serving
     ```bash
     kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-crds.yaml
-
+    kubectl wait --for=condition=Established --all crd
     kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-core.yaml
-
     kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
     ```
-1. Install Contour but replace the version of envoy to `v1.16.0` as the version that supports arm64
+1. Install Contour `1.10` that uses arm enable envoy with `1.16`
     ```bash
-    curl -s -L https://storage.googleapis.com/knative-nightly/net-contour/latest/contour.yaml | \
-    sed "s/envoy:v1.15.1/envoy:v1.16.0/g" | \
-    kubectl apply -f -
-
+    kubectl apply -f https://storage.googleapis.com/knative-nightly/net-contour/latest/contour.yaml
+    kubectl wait --for=condition=Established --all crd
     kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-external -l '!job-name'
     kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-internal -l '!job-name'
     ```
 1. Install the Knative Network Controller:
     ```bash
     kubectl apply --filename https://storage.googleapis.com/knative-nightly/net-contour/latest/net-contour.yaml
-
     kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
     ```
 1. To configure Knative Serving to use previous installed Network Controller by default:

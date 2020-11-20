@@ -1,21 +1,43 @@
 #!/bin/bash
 
-set -ex
-KNATIVE_VERSION=${KNATIVE_VERSION:latest}
-KNATIVE_NET_CONTOUR_VERSION=${KNATIVE_NET_KOURIER_VERSION:latest}
+set -xeo pipefail
 
-kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/${KNATIVE_VERSION}/serving-crds.yaml
-kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-core.yaml
+serving_version=${serving_version:-latest}
+knative_net_contour_version=${knative_net_contour_version:-latest}
+set -u
+
+n=0
+until [ $n -ge 2 ]; do
+  kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/${serving_version}/serving-crds.yaml && break
+  n=$[$n+1]
+  sleep 5
+done
+kubectl wait --for=condition=Established --all crd
+
+n=0
+until [ $n -ge 2 ]; do
+  kubectl apply -f https://storage.googleapis.com/knative-nightly/serving/latest/serving-core.yaml && break
+  n=$[$n+1]
+  sleep 5
+done
 kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
 
-curl -s -L https://storage.googleapis.com/knative-nightly/net-contour/${KNATIVE_NET_CONTOUR_VERSION}/contour.yaml | \
-sed "s/envoy:v1.15.1/envoy:v1.16.0/g" | \
-kubectl apply -f -
-
+n=0
+until [ $n -ge 2 ]; do
+  kubectl apply -f https://storage.googleapis.com/knative-nightly/net-contour/${knative_net_contour_version}/contour.yaml && break
+  n=$[$n+1]
+  sleep 5
+done
+kubectl wait --for=condition=Established --all crd
 kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-external -l '!job-name'
 kubectl wait pod --timeout=-1s --for=condition=Ready -n contour-internal -l '!job-name'
 
-kubectl apply --filename https://storage.googleapis.com/knative-nightly/net-contour/latest/net-contour.yaml
+n=0
+until [ $n -ge 2 ]; do
+  kubectl apply -f https://storage.googleapis.com/knative-nightly/net-contour/${knative_net_contour_version}/net-contour.yaml && break
+  n=$[$n+1]
+  sleep 5
+done
 kubectl wait pod --timeout=-1s --for=condition=Ready -n knative-serving -l '!job-name'
 
 kubectl patch configmap/config-network \
